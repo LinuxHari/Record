@@ -1,0 +1,1 @@
+""" This module handles the assets uploaded for the RAG system. It provides endpoints for uploading, listing, and updating assets. """

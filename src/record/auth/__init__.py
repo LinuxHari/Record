@@ -1,0 +1,1 @@
+""" This module handles authentication of user """
