@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [tool.fastapi]
-entrypoint = "src.record:main"
+entrypoint = "src.record.main:app"
 
 [project.scripts]
 record = "record:main"
