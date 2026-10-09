@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-router = APIRouter("/assets", tags=["Assets"])
+router = APIRouter(prefix="/assets", tags=["Assets"])
 
 @router.post("/")
 def upload_asset():

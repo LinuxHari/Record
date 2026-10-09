@@ -4,7 +4,7 @@ from record.db.pg import pg_sessionmanager
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    
+
     try:
         await pg_sessionmanager.create_all()
         yield
