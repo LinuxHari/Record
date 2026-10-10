@@ -1,6 +1,7 @@
 from celery import Celery
+from record.dependencies import get_settings
 
 celery_app = Celery(
     "assets",
-    broker="",
+    broker=get_settings().queue_url,
 )

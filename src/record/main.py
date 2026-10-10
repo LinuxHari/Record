@@ -5,8 +5,17 @@ from record.__init__ import lifespan
 from record.assets.router import router as assets_router
 from record.auth.router import router as auth_router
 from record.ai.router import router as ai_router
+from record.exceptions import register_exception_handlers
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import Depends
+from record.db.sql.postgres.session import get_pg_session
+from record.user.repository import user_repository
+from record.user.errors import CONSTRAINT_ERRORS as USER_CONSTRAINT_ERRORS
 
 app = FastAPI(lifespan=lifespan)
+
+register_exception_handlers(app, constraint_errors=USER_CONSTRAINT_ERRORS)
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,3 +28,23 @@ app.add_middleware(
 app.include_router(assets_router)
 app.include_router(auth_router)
 app.include_router(ai_router)
+
+@app.get("/")
+async def get_users(db: AsyncSession = Depends(get_pg_session)): 
+    records = await user_repository.get_by_field(db, field_filter={"field": "hash", "value": "Hello"})
+    return records
+
+@app.post("/")
+async def create_user(db: AsyncSession = Depends(get_pg_session)):
+    await user_repository.create(db, model_data={"username":"Hariharan", "email":"test@gmail.com", "password": "hellohello"})
+    return {"success": True} 
+
+@app.put("/")
+async def update_user(db: AsyncSession = Depends(get_pg_session)):
+    await user_repository.update_by_field(db, update_data={"email": "test123@gmail.com"}, field_filter={"field": "email", "value": "tes@gmail.com"})
+    return {"success": True} 
+
+@app.delete("/")
+async def delete_user(db: AsyncSession = Depends(get_pg_session)):
+    await user_repository.delete_by_field(db, field_filter={"field": "email", "value": "test123@gmail.com"})
+    return {"success": True}
