@@ -103,9 +103,9 @@ def _not_found_detail(exc: NoResultFound) -> str:
         message,
         flags=re.IGNORECASE,
     )
-    if not match:
-        return NotFoundException.detail
-    return f"{(match.group(1) or match.group(2)).lower()} not found"
+    if match:
+        return message
+    return NotFoundException.detail
 
 
 def _internal_error(exc: SQLAlchemyError) -> JSONResponse:
@@ -122,13 +122,13 @@ async def sqlalchemy_exception_handler(
     if isinstance(exc, NoResultFound):
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
-            content={"detail": _not_found_detail(exc)},
+            content={"success": False, "detail": _not_found_detail(exc)},
         )
 
     if isinstance(exc, DataError):
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content={"detail": "Input is too long."},
+            content={"success": False, "detail": "Input is too long."},
         )
 
     if isinstance(exc, IntegrityError):
@@ -149,18 +149,18 @@ async def sqlalchemy_exception_handler(
             )
             return JSONResponse(
                 status_code=error_status,
-                content={"detail": error_detail},
+                content={"success": False, "detail": error_detail},
             )
 
         if (constraint_name and constraint_name.startswith("uq_")):
             return JSONResponse(
                 status_code=status.HTTP_409_CONFLICT,
-                content={"detail": "A record with given value(s) already exists."},
+                content={"success": False, "detail": "A record with given value(s) already exists."},
             )
         if (constraint_name and constraint_name.startswith("ck_")):
             return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                content={"detail": "Invalid input."},
+                content={"success": False, "detail": "Invalid input."},
             )
 
     return _internal_error(exc)
