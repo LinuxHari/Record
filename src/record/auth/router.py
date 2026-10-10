@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-router = APIRouter("/auth", tags=["Authentication"])
+router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/login")
 def login():

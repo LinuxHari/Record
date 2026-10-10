@@ -1,10 +1,10 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from record.db.pg import pg_sessionmanager
+from record.db.sql.postgres.session import pg_sessionmanager
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    
+
     try:
         await pg_sessionmanager.create_all()
         yield

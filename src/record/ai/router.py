@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-router = APIRouter("/ai", tags=["AI"])
+router = APIRouter(prefix="/ai", tags=["AI"])
 
 @router.post("/chat/{chat_id}")
 def chat(chat_id: str):
