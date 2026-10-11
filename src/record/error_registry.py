@@ -4,8 +4,10 @@ from pydantic import validate_call, ConfigDict
 from record.user.errors import CONSTRAINT_ERRORS as USER_CONSTRAINT_ERRORS
 
 @validate_call(config=ConfigDict(strict=True))
-def _merge_constraint_errors(*registries: Mapping[str, str]) -> dict[str, str]:
-    merged: dict[str, str] = {}
+def _merge_constraint_errors(
+    *registries: Mapping[str, Mapping[str, str]],
+) -> dict[str, Mapping[str, str]]:
+    merged: dict[str, Mapping[str, str]] = {}
     for registry in registries:
         duplicates = merged.keys() & registry.keys()
         if duplicates:

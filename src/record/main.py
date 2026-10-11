@@ -7,6 +7,7 @@ from record.auth.router import router as auth_router
 from record.ai.router import router as ai_router
 from record.error_registry import CONSTRAINT_ERRORS
 from record.exceptions import register_exception_handlers
+from record.response_handler import GlobalResponseHandler
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
@@ -17,6 +18,7 @@ from record.user.models import User
 app = FastAPI(lifespan=lifespan)
 
 register_exception_handlers(app, constraint_errors=CONSTRAINT_ERRORS)
+app.router.route_class = GlobalResponseHandler
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,20 +34,20 @@ app.include_router(ai_router)
 
 @app.get("/")
 async def get_users(db: AsyncSession = Depends(get_pg_session)): 
-    records = await user_repository.get_by_field(db, field_filter={"field": "username", "value": "Hariharan"})
-    return []
+    records = await user_repository.get_by_field(db, where={"field": User.username, "value": "Hariharan"}, columns=(User.email,))
+    return records
 
 @app.post("/")
 async def create_user(db: AsyncSession = Depends(get_pg_session)):
-    await user_repository.create(db, model_data=User(username="Hariharan", email="hari@gmail.com", password="HariHari"))
+    await user_repository.create(db, User(username="Hariharan1", email="hari@gmail.com", password="HariHari"))
     return {"success": True} 
 
 @app.put("/")
 async def update_user(db: AsyncSession = Depends(get_pg_session)):
-    await user_repository.update_by_field(db, update_data={"email": "test123@gmail.com"}, field_filter={"field": "email", "value": "tes@gmail.com"})
+    await user_repository.update_by_field(db, {"email": "test123@gmail.com"}, where={"field": User.email, "value": "tes@gmail.com"})
     return {"success": True} 
 
 @app.delete("/")
 async def delete_user(db: AsyncSession = Depends(get_pg_session)):
-    await user_repository.delete_by_field(db, field_filter={"field": "email", "value": "test123@gmail.com"})
+    await user_repository.delete_by_field(db, where={"field": User.email, "value": "hari@gmail.com"})
     return {"success": True}
