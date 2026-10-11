@@ -5,17 +5,18 @@ from record.__init__ import lifespan
 from record.assets.router import router as assets_router
 from record.auth.router import router as auth_router
 from record.ai.router import router as ai_router
+from record.error_registry import CONSTRAINT_ERRORS
 from record.exceptions import register_exception_handlers
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
 from record.db.sql.postgres.session import get_pg_session
 from record.user.repository import user_repository
-from record.user.errors import CONSTRAINT_ERRORS as USER_CONSTRAINT_ERRORS
+from record.user.models import User
 
 app = FastAPI(lifespan=lifespan)
 
-register_exception_handlers(app, constraint_errors=USER_CONSTRAINT_ERRORS)
+register_exception_handlers(app, constraint_errors=CONSTRAINT_ERRORS)
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,12 +32,12 @@ app.include_router(ai_router)
 
 @app.get("/")
 async def get_users(db: AsyncSession = Depends(get_pg_session)): 
-    records = await user_repository.get_by_field(db, field_filter={"field": "hash", "value": "Hello"})
-    return records
+    records = await user_repository.get_by_field(db, field_filter={"field": "username", "value": "Hariharan"})
+    return []
 
 @app.post("/")
 async def create_user(db: AsyncSession = Depends(get_pg_session)):
-    await user_repository.create(db, model_data={"username":"Hariharan", "email":"test@gmail.com", "password": "hellohello"})
+    await user_repository.create(db, model_data=User(username="Hariharan", email="hari@gmail.com", password="HariHari"))
     return {"success": True} 
 
 @app.put("/")

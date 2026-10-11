@@ -1,13 +1,9 @@
-import logging
 import re
 from collections.abc import Mapping
 
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import DataError, IntegrityError, NoResultFound, SQLAlchemyError
-
-logger = logging.getLogger(__name__)
-
 
 class AppException(Exception):
     status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -55,7 +51,7 @@ class InternalServerException(AppException):
 async def app_exception_handler(_: Request, exc: AppException) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,
-        content={"detail": exc.detail},
+        content={"success": False, "detail": exc.detail},
     )
 
 
@@ -103,18 +99,16 @@ def _not_found_detail(exc: NoResultFound) -> str:
         message,
         flags=re.IGNORECASE,
     )
-    if not match:
-        return NotFoundException.detail
-    return f"{(match.group(1) or match.group(2)).lower()} not found"
+    if match:
+        return message
+    return NotFoundException.detail
 
 
-def _internal_error(exc: SQLAlchemyError) -> JSONResponse:
-    logger.error("Unhandled database error: %s", type(exc).__name__)
+def _internal_error(_: SQLAlchemyError) -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": InternalServerException.detail},
+        content={"success": False, "detail": InternalServerException.detail},
     )
-
 
 async def sqlalchemy_exception_handler(
     request: Request, exc: SQLAlchemyError
@@ -122,13 +116,13 @@ async def sqlalchemy_exception_handler(
     if isinstance(exc, NoResultFound):
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
-            content={"detail": _not_found_detail(exc)},
+            content={"success": False, "detail": _not_found_detail(exc)},
         )
 
     if isinstance(exc, DataError):
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content={"detail": "Input is too long."},
+            content={"success": False, "detail": "Input is too long."},
         )
 
     if isinstance(exc, IntegrityError):
@@ -149,18 +143,18 @@ async def sqlalchemy_exception_handler(
             )
             return JSONResponse(
                 status_code=error_status,
-                content={"detail": error_detail},
+                content={"success": False, "detail": error_detail},
             )
 
         if (constraint_name and constraint_name.startswith("uq_")):
             return JSONResponse(
                 status_code=status.HTTP_409_CONFLICT,
-                content={"detail": "A record with given value(s) already exists."},
+                content={"success": False, "detail": "A record with given value(s) already exists."},
             )
         if (constraint_name and constraint_name.startswith("ck_")):
             return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                content={"detail": "Invalid input."},
+                content={"success": False, "detail": "Invalid input."},
             )
 
     return _internal_error(exc)
