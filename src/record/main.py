@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
 from record.db.sql.postgres.session import get_pg_session
 from record.user.repository import user_repository
+from record.user.models import User
 
 app = FastAPI(lifespan=lifespan)
 
@@ -32,11 +33,11 @@ app.include_router(ai_router)
 @app.get("/")
 async def get_users(db: AsyncSession = Depends(get_pg_session)): 
     records = await user_repository.get_by_field(db, field_filter={"field": "username", "value": "Hariharan"})
-    return records
+    return []
 
 @app.post("/")
 async def create_user(db: AsyncSession = Depends(get_pg_session)):
-    await user_repository.create(db, model_data={"username":"Hariharan", "email":"test@gmail.com", "password": "hellohello"})
+    await user_repository.create(db, model_data=User(username="Hariharan", email="hari@gmail.com", password="HariHari"))
     return {"success": True} 
 
 @app.put("/")

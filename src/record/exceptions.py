@@ -1,13 +1,9 @@
-import logging
 import re
 from collections.abc import Mapping
 
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import DataError, IntegrityError, NoResultFound, SQLAlchemyError
-
-logger = logging.getLogger(__name__)
-
 
 class AppException(Exception):
     status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -55,7 +51,7 @@ class InternalServerException(AppException):
 async def app_exception_handler(_: Request, exc: AppException) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,
-        content={"detail": exc.detail},
+        content={"success": False, "detail": exc.detail},
     )
 
 
@@ -108,13 +104,11 @@ def _not_found_detail(exc: NoResultFound) -> str:
     return NotFoundException.detail
 
 
-def _internal_error(exc: SQLAlchemyError) -> JSONResponse:
-    logger.error("Unhandled database error: %s", type(exc).__name__)
+def _internal_error(_: SQLAlchemyError) -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": InternalServerException.detail},
+        content={"success": False, "detail": InternalServerException.detail},
     )
-
 
 async def sqlalchemy_exception_handler(
     request: Request, exc: SQLAlchemyError
