@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql.elements import ColumnElement
-from typing import Generic, Sequence, TypeVar
+from typing import Generic, Sequence, TypeVar, Any
 from sqlalchemy import select
 
 ModelT = TypeVar("ModelT", bound=DeclarativeBase)
@@ -40,7 +40,7 @@ class BaseRepository(Generic[ModelT]):
         columns: Sequence[str] = None,
         order_by: Sequence[str] = None,
         offset: int = None,
-        limit: int = None
+        limit: int = None,
     ) -> ModelT:
         if columns:
             stmt = select(*columns).where(*where)
@@ -63,15 +63,68 @@ class BaseRepository(Generic[ModelT]):
         await self._save(session, commit=commit)
         return data
 
-    async def _update(
-        self, session: AsyncSession, data: Sequence[dict], where: Sequence[ColumnElement[bool]], commit: bool = True
+    async def _update_many(
+        self,
+        session: AsyncSession,
+        data: dict[str, Any],
+        where: Sequence[ColumnElement[bool]],
+        commit: bool = True,
     ):
-        for ins in data:
-            row = await self._find_one(session, where=where, columns=ins.keys())
-            if row is None:
-                return None, ins
-            for key, value in ins.items():
+        rows = await self._find_many(session, where=where)
+
+        if rows is None:
+            return None
+
+        for row in rows:
+            for key, value in data.items():
                 setattr(row, key, value)
 
-        self._save(session, commit=commit)
-        return data
+        await self._save(session, commit=commit)
+        return rows
+
+    async def _update(
+        self,
+        session: AsyncSession,
+        data: dict[str, Any],
+        where: Sequence[ColumnElement[bool]],
+        commit: bool = True,
+    ):
+        row = await self._find_one(session, where=where)
+
+        if row is None:
+            return None
+
+        for key, value in data.items():
+            setattr(row, key, value)
+
+        await self._save(session, commit=commit)
+        return row
+
+    async def _delete(
+        self,
+        session: AsyncSession,
+        where: Sequence[ColumnElement[bool]],
+        commit: bool = True,
+    ) -> ModelT | None:
+        row = await self._find_one(session, where=where)
+
+        if row is None:
+            return None
+
+        await session.delete(row)
+        await self._save(session, commit=commit)
+        return row
+
+    async def _delete_many(
+        self,
+        session: AsyncSession,
+        where: Sequence[ColumnElement[bool]],
+        commit: bool = True,
+    ) -> Sequence[ModelT]:
+        rows = await self._find_many(session, where=where)
+
+        for row in rows:
+            await session.delete(row)
+
+        await self._save(session, commit=commit)
+        return rows
