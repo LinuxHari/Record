@@ -1,10 +1,10 @@
 from typing import Mapping
 from pydantic import validate_call, ConfigDict
 
-from record.user.errors import CONSTRAINT_ERRORS as USER_CONSTRAINT_ERRORS
+from record.app.user.models import CONSTRAINT_EXCEPTIONS as USER_CONSTRAINT_EXCEPTIONS
 
 @validate_call(config=ConfigDict(strict=True))
-def _merge_constraint_errors(
+def _merge_constraint_exceptions(
     *registries: Mapping[str, Mapping[str, str]],
 ) -> dict[str, Mapping[str, str]]:
     merged: dict[str, Mapping[str, str]] = {}
@@ -17,4 +17,4 @@ def _merge_constraint_errors(
     return merged
 
 
-CONSTRAINT_ERRORS = _merge_constraint_errors(USER_CONSTRAINT_ERRORS)
+CONSTRAINT_EXCEPTIONS = _merge_constraint_exceptions(USER_CONSTRAINT_EXCEPTIONS)
