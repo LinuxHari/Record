@@ -1,4 +1,5 @@
 import contextlib
+from contextvars import ContextVar
 from typing import Any, AsyncGenerator
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.ext.asyncio import (
@@ -12,6 +13,7 @@ class DatabaseSessionManager:
         self._engine = create_async_engine(host, **engine_kwargs)
         self._sessionmaker = async_sessionmaker(autocommit=False, bind=self._engine)
         self._base = base
+        self.db_context: ContextVar[AsyncSession] = ContextVar("db_session")
 
     async def close(self):
         if self._engine is None:
@@ -50,6 +52,7 @@ class DatabaseSessionManager:
             raise Exception("DatabaseSessionManager is not initialized")
 
         session = self._sessionmaker()
+        token = self.db_context.set(session)
         try:
             yield session
         except Exception:
@@ -57,3 +60,4 @@ class DatabaseSessionManager:
             raise
         finally:
             await session.close()
+            self.db_context.reset(token)

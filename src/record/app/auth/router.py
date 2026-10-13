@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from record.db.sql.postgres.session import get_pg_session
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -6,9 +7,9 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 def login():
     return {"message": "User logged in successfully"}
 
-@router.post("/register")
-def register():
-    return {"message": "User registered successfully"}
+@router.post("/register", dependencies=[Depends(get_pg_session)])
+async def signup():
+    return None
 
 @router.post("/logout")
 def logout():
