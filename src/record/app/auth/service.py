@@ -1,23 +1,20 @@
+from typing import TypedDict
+from record.app.user.repository import UserRepository
+from record.app.user.models import User
+
+class SignupData(TypedDict):
+    username: str
+    password: str
+    email: str
+
 class AuthService:
-    def __init__(self):
-        pass
+    def __init__(self, user_repository: UserRepository):
+        self.user_repository = user_repository
 
-    def sign_up(self, username: str, password: str) -> bool:
-        # Implement your sign-up logic here
-        return True
-
-    def login(self, username: str, password: str) -> bool:
-        # Implement your authentication logic here
-        return True
-
-    def generate_token(self, user_id: str) -> str:
-        # Implement your token generation logic here
-        return "dummy_token"
-
-    def refresh_token(self, token: str) -> str:
-        # Implement your token refresh logic here
-        return "refreshed_token"
-
-    def logout(self, token: str) -> bool:
-        # Implement your logout logic here
-        return True
+    async def sign_up(self, *, data: SignupData) -> bool:
+        user = User(
+            username=data["username"],
+            password=data["password"],
+            email=data["email"],
+        )
+        return bool(await self.user_repository.create(user))

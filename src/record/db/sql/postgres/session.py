@@ -1,6 +1,7 @@
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.ext.asyncio import (
     AsyncAttrs,
+    AsyncSession,
 )
 from record.dependencies import get_settings
 from record.db.sql.service import DatabaseSessionManager
@@ -14,3 +15,6 @@ pg_sessionmanager = DatabaseSessionManager(get_settings().db_url, PGBase, {"echo
 async def get_pg_session():
     async with pg_sessionmanager.session() as session:
         yield session
+
+def get_pg_context() -> AsyncSession:
+    return pg_sessionmanager.db_context.get()
