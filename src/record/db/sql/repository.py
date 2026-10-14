@@ -18,12 +18,6 @@ class BaseRepository(Generic[ModelT]):
     def session(self) -> AsyncSession:
         return self._context_fn()
 
-    async def _save(self, commit: bool):
-        if commit:
-            await self.session.commit()
-        else:
-            await self.session.flush()
-
     async def _find_one(
         self,
         *,
@@ -60,18 +54,14 @@ class BaseRepository(Generic[ModelT]):
         result = (await self.session.scalars(stmt)).all()
         return result
 
-    async def _create(
-        self, data: Sequence[ModelT], *, commit: bool = True
-    ):
+    async def _create(self, data: Sequence[ModelT]):
         self.session.add_all(data)
-        await self._save(commit=commit)
         return data
 
     async def _update_many(
         self,
         data: dict[str, Any],
         where: Sequence[ColumnElement[bool]],
-        commit: bool = True,
     ):
         rows = await self._find_many(where=where)
 
@@ -82,14 +72,12 @@ class BaseRepository(Generic[ModelT]):
             for key, value in data.items():
                 setattr(row, key, value)
 
-        await self._save(commit=commit)
         return rows
 
     async def _update(
         self,
         data: dict[str, Any],
         where: Sequence[ColumnElement[bool]],
-        commit: bool = True,
     ):
         row = await self._find_one(where=where)
 
@@ -99,13 +87,11 @@ class BaseRepository(Generic[ModelT]):
         for key, value in data.items():
             setattr(row, key, value)
 
-        await self._save(commit=commit)
         return row
 
     async def _delete(
         self,
         where: Sequence[ColumnElement[bool]],
-        commit: bool = True,
     ) -> ModelT | None:
         row = await self._find_one(where=where)
 
@@ -113,18 +99,15 @@ class BaseRepository(Generic[ModelT]):
             return None
 
         await self.session.delete(row)
-        await self._save(commit=commit)
         return row
 
     async def _delete_many(
         self,
         where: Sequence[ColumnElement[bool]],
-        commit: bool = True,
     ) -> Sequence[ModelT]:
         rows = await self._find_many(where=where)
 
         for row in rows:
             await self.session.delete(row)
 
-        await self._save(commit=commit)
         return rows
