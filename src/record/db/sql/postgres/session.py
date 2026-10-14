@@ -16,5 +16,9 @@ async def get_pg_session():
     async with pg_sessionmanager.session() as session:
         yield session
 
+async def get_pg_transaction():
+    async with pg_sessionmanager.begin() as transaction:
+        yield transaction
+
 def get_pg_context() -> AsyncSession:
     return pg_sessionmanager.db_context.get()
