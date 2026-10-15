@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from typing_extensions import Self
 from typing import Annotated
 from pydantic import (
@@ -16,6 +16,8 @@ from record.app.shared.validators import (
     username_validator,
 )
 from record.handlers.response_handler import GlobalResponseHandler
+from record.config import Settings
+from record.dependencies import get_settings
 
 router = APIRouter(
     prefix="/auth",
@@ -34,21 +36,30 @@ PasswordString = Annotated[
     AfterValidator(password_validator.validate),
 ]
 
-UsernameString = Annotated[str, Field(
+UsernameString = Annotated[
+    str,
+    Field(
         title="Username",
         description="Username can only contain lowercase and numbers",
         min_length=username_validator.min_len,
         max_length=username_validator.max_len,
         examples=["johndoe"],
-    ), AfterValidator(username_validator.validate)]
+    ),
+    AfterValidator(username_validator.validate),
+]
 
-EmailString = Annotated[str, Field(
+EmailString = Annotated[
+    str,
+    Field(
         title="Email",
         description="Email can be any typical email",
         examples=["user@example.com"],
         min_length=email_validator.min_len,
         max_length=email_validator.max_len,
-    ), AfterValidator(email_validator.validate)]
+    ),
+    AfterValidator(email_validator.validate),
+]
+
 
 class SignupPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -69,6 +80,18 @@ class SignupPayload(BaseModel):
         return self
 
 
+class LoginPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    user: str = Field(
+        title="user",
+        description="Username or email that was given while signing up, it is optional if email is given",
+    )
+    password: str = Field(
+        title="Password", description="Password that was given while signing up."
+    )
+
+
 @router.post(
     "/register",
     dependencies=[Depends(get_pg_session, scope="function")],
@@ -82,12 +105,39 @@ async def signup(payload: SignupPayload) -> None:
         }
     )
 
-    return {"message": "success"}
+    return None
 
 
-@router.post("/login")
-def login():
-    return {"message": "User logged in successfully"}
+@router.post(
+    "/login",
+    dependencies=[Depends(get_pg_session, scope="function")],
+)
+async def login(
+    response: Response,
+    payload: LoginPayload,
+    settings: Settings = Depends(get_settings),
+) -> None:
+    access_token, refresh_token = await auth_service.login(
+        data={"user": payload.user, "password": payload.password}
+    )
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        max_age=settings.jwt_access_expiry_minutes * 60,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        max_age=settings.refresh_expiry_days * 24 * 60 * 60,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+    )
+
+    return None
 
 
 @router.post("/logout")
