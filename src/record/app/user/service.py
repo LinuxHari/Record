@@ -6,5 +6,5 @@ class UserData(TypedDict):
     email: str
 
 class UserService:
-    def __init__(self, user_repository):
+    def __init__(self, *, user_repository):
         self.user_repository = user_repository

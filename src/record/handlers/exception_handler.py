@@ -1,5 +1,5 @@
 import re
-from typing import Mapping
+from typing import Any, Mapping
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -7,7 +7,87 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import DataError, IntegrityError, SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from record.exceptions.http_excpetions import AppException, InternalServerException
+from record.exceptions.http_excpetions import (
+    AppException,
+    InternalServerException,
+)
+
+from record.exceptions.custom_exceptions import FieldValidationException
+
+
+def _validation_field(loc: tuple[str | int, ...]) -> str:
+    path = list(loc)
+    if path and path[0] in {"body", "query", "path", "header", "cookie"}:
+        path.pop(0)
+
+    if not path:
+        return "request"
+
+    field = ""
+    for part in path:
+        if isinstance(part, int):
+            field += f"[{part}]"
+        else:
+            field += f".{part}" if field else part
+    return field
+
+
+def _validation_message(error: Mapping[str, Any]) -> str:
+    field = _validation_field(error["loc"])
+    label = field.rsplit(".", 1)[-1].split("[", 1)[0].replace("_", " ").title()
+    error_type = error["type"]
+    context = error.get("ctx") or {}
+
+    if error_type == "string_too_short":
+        return f"{label} should have at least {context['min_length']} characters"
+    if error_type == "string_too_long":
+        return f"{label} should not exceed {context['max_length']} characters"
+    if error_type == "string_type":
+        return f"{label} must be text"
+    if error_type in {"int_parsing", "int_type"}:
+        return f"{label} must be a valid integer"
+    if error_type in {"float_parsing", "float_type"}:
+        return f"{label} must be numeric"
+    if error_type == "bool_type":
+        return f"{label} must be true or false"
+    if error_type == "list_type":
+        return f"{label} must be a list"
+    if error_type == "tuple_type":
+        return f"{label} must be a tuple"
+    if error_type == "set_type":
+        return f"{label} must be a set"
+    if error_type == "dict_type":
+        return f"{label} must be an object"
+    if error_type == "missing":
+        return f"{label} is required"
+    if error_type == "extra_forbidden":
+        return f"{label} is not allowed"
+    if error_type == "string_pattern_mismatch":
+        return f"{label} has an invalid format"
+    if error_type == "greater_than":
+        return f"{label} must be greater than {context['gt']}"
+    if error_type == "greater_than_equal":
+        return f"{label} must be at least {context['ge']}"
+    if error_type == "less_than":
+        return f"{label} must be less than {context['lt']}"
+    if error_type == "less_than_equal":
+        return f"{label} must not exceed {context['le']}"
+
+    message = error["msg"]
+    if message.startswith("Input should be a valid "):
+        return f"{label} must be a valid {message.removeprefix('Input should be a valid ')}"
+
+    for prefix in ("Value error, ", "Assertion failed, "):
+        if message.startswith(prefix):
+            message = message.removeprefix(prefix)
+            break
+
+    for generic_prefix in ("String should ", "Number should ", "Input should "):
+        if message.startswith(generic_prefix):
+            return f"{label} should {message.removeprefix(generic_prefix)}"
+
+    return message
+
 
 def _error_response(
     status_code: int,
@@ -37,6 +117,7 @@ async def app_exception_handler(_: Request, exc: AppException) -> JSONResponse:
         exc.status_code,
         message="Request failed",
         issue=exc.detail,
+        field=exc.field if isinstance(exc, FieldValidationException) else None,
     )
 
 
@@ -56,11 +137,12 @@ async def request_validation_exception_handler(
 ) -> JSONResponse:
     errors = [
         {
-            **({"field": str(error["loc"][-1])} if error["loc"] else {}),
-            "issue": error["msg"],
+            "field": _validation_field(error["loc"]),
+            "issue": _validation_message(error),
         }
         for error in exc.errors()
     ]
+
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content={
@@ -72,12 +154,11 @@ async def request_validation_exception_handler(
 
 
 def _constraint_name(exc: IntegrityError) -> str | None:
-    original = exc.orig
-    candidate = getattr(original, "constraint_name", None)
+    candidate = getattr(exc.orig, "constraint_name", None)
     if isinstance(candidate, str) and candidate:
         return candidate
 
-    message = str(original)
+    message = str(exc.orig)
     match = re.search(
         r"\bconstraint\s+[\"'`]?([A-Za-z0-9_.-]+)",
         message,
@@ -104,20 +185,6 @@ def _is_not_null_violation(message: str) -> bool:
         )
     )
 
-
-# def _not_found_detail(exc: NoResultFound) -> str:
-#     message = str(exc).strip()
-#     match = re.fullmatch(
-#         r"(?:No\s+([A-Za-z][A-Za-z0-9_.-]*)\s+found|"
-#         r"([A-Za-z][A-Za-z0-9_.-]*)\s+not found)\.?",
-#         message,
-#         flags=re.IGNORECASE,
-#     )
-#     if match:
-#         return message
-#     return NotFoundException.message
-
-
 def _internal_error() -> JSONResponse:
     return _error_response(
         status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -129,12 +196,6 @@ def _internal_error() -> JSONResponse:
 async def sqlalchemy_exception_handler(
     request: Request, exc: SQLAlchemyError
 ) -> JSONResponse:
-    # if isinstance(exc, NoResultFound):
-    #     return _error_response(
-    #         status.HTTP_404_NOT_FOUND,
-    #         message="Request failed",
-    #         issue=_not_found_detail(exc),
-        # )
     print("Sql exception:", exc)
     if isinstance(exc, DataError):
         return _error_response(
@@ -148,7 +209,7 @@ async def sqlalchemy_exception_handler(
         if _is_not_null_violation(message):
             return _internal_error()
 
-        constraint_name = _constraint_name(exc) # Extract constraint from error
+        constraint_name = _constraint_name(exc)
         constraint_exceptions: Mapping[str, Mapping[str, str]] = getattr(
             request.app.state, "constraint_exceptions", {}
         )

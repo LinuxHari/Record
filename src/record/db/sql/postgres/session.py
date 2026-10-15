@@ -15,7 +15,13 @@ class PGBase(AsyncAttrs, DeclarativeBase):
 pg_sessionmanager = DatabaseSessionManager(
     get_settings().db_url,
     PGBase,
-    {"echo": True, "pool_size": 10, "max_overflow": 20, "future": True},
+    {
+        "echo": True,
+        "hide_parameters": True,
+        "pool_size": 10,
+        "max_overflow": 20,
+        "future": True,
+    },
 )
 
 
