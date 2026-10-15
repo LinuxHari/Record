@@ -15,8 +15,13 @@ from record.app.shared.validators import (
     password_validator,
     username_validator,
 )
+from record.handlers.response_handler import GlobalResponseHandler
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(
+    prefix="/auth",
+    tags=["Authentication"],
+    route_class=GlobalResponseHandler,
+)
 
 PasswordString = Annotated[
     str,
@@ -77,7 +82,7 @@ async def signup(payload: SignupPayload) -> None:
         }
     )
 
-    return None
+    return {"message": "success"}
 
 
 @router.post("/login")
