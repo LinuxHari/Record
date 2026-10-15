@@ -1,7 +1,9 @@
 from typing import Mapping
-from pydantic import validate_call, ConfigDict
+
+from pydantic import ConfigDict, validate_call
 
 from record.app.user.models import CONSTRAINT_EXCEPTIONS as USER_CONSTRAINT_EXCEPTIONS
+
 
 @validate_call(config=ConfigDict(strict=True))
 def _merge_constraint_exceptions(
