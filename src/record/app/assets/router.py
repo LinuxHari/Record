@@ -1,6 +1,11 @@
 from fastapi import APIRouter
+from record.handlers.response_handler import GlobalResponseHandler
 
-router = APIRouter(prefix="/assets", tags=["Assets"])
+router = APIRouter(
+    prefix="/assets",
+    tags=["Assets"],
+    route_class=GlobalResponseHandler,
+)
 
 @router.post("/")
 def upload_asset():
