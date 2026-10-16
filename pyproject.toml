@@ -17,6 +17,7 @@ dependencies = [
     "llama-parse>=0.6.94",
     "pwdlib[argon2]>=0.3.1",
     "pyjwt>=2.15.1",
+    "redis[hiredis]>=8.1.0",
     "sqlalchemy[asyncio]>=2.1.3",
 ]
 

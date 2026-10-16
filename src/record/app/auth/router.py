@@ -9,7 +9,8 @@ from pydantic import (
     model_validator,
 )
 from record.db.sql.postgres.session import get_pg_session
-from record.app.shared.container import auth_service
+from record.app.auth.service import AuthService
+from record.app.shared.dependencies import get_auth_service
 from record.app.shared.validators import (
     email_validator,
     password_validator,
@@ -96,7 +97,10 @@ class LoginPayload(BaseModel):
     "/register",
     dependencies=[Depends(get_pg_session, scope="function")],
 )
-async def signup(payload: SignupPayload) -> None:
+async def signup(
+    payload: SignupPayload,
+    auth_service: AuthService = Depends(get_auth_service),
+) -> None:
     await auth_service.sign_up(
         data={
             "username": payload.username,
@@ -115,6 +119,7 @@ async def signup(payload: SignupPayload) -> None:
 async def login(
     response: Response,
     payload: LoginPayload,
+    auth_service: AuthService = Depends(get_auth_service),
     settings: Settings = Depends(get_settings),
 ) -> None:
     access_token, refresh_token = await auth_service.login(

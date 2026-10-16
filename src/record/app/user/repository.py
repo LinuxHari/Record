@@ -22,6 +22,8 @@ class UserRepository(BaseRepository[User]):
             where=((self._model.username == value) | (self._model.email == value),)
         )
 
+    async def find_by_email_and_username(self, *, email: str, username: str) -> User | None:
+        return await self._find_one(where=((self._model.username == username) | (self._model.email == email)))
     # async def find_by_email(self, *, email: str) -> User | None:
     #     return await self._find_one(where=(self._model.email == email,))
 
