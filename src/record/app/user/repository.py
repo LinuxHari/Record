@@ -1,5 +1,5 @@
-from typing import Callable, Sequence
-# from uuid import UUID
+import uuid
+from typing import Callable
 
 from sqlalchemy.ext.asyncio import AsyncSession
 # from sqlalchemy import or_
@@ -11,8 +11,8 @@ class UserRepository(BaseRepository[User]):
     def __init__(self, context_fn: Callable[[], AsyncSession]):
         super().__init__(User, context_fn)
 
-    # async def find_by_id(self, *, id: UUID) -> User | None:
-    #     return await self._find_one(where=(self._model.id == id,))
+    async def find_by_id(self, *, id: uuid.UUID) -> User | None:
+        return await self._find_one(where=(self._model.id == id,))
 
     # async def find_by_username(self, *, username: str) -> User | None:
     #     return await self._find_one(where=(self._model.username == username,))

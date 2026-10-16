@@ -22,6 +22,12 @@ class UnauthorizedException(AppException):
     message = "Authentication is required."
 
 
+class ServiceUnavailableException(AppException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    issue = "service_unavailable"
+    message = "A required service is unavailable."
+
+
 class ForbiddenException(AppException):
     status_code = status.HTTP_403_FORBIDDEN
     issue = "forbidden"

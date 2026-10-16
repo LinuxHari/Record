@@ -58,14 +58,19 @@ class GlobalResponseHandler(APIRoute):
                     "data": data,
                 }
 
-            return JSONResponse(
+            json_response = JSONResponse(
                 content=formatted,
                 status_code=response.status_code,
-                headers={
-                    key: value
-                    for key, value in response.headers.items()
-                    if key.lower() not in {"content-length", "content-type"}
-                },
             )
+            json_response.raw_headers = [
+                (key, value)
+                for key, value in response.raw_headers
+                if key.lower() not in {b"content-length", b"content-type"}
+            ] + [
+                (key, value)
+                for key, value in json_response.raw_headers
+                if key.lower() in {b"content-length", b"content-type"}
+            ]
+            return json_response
 
         return custom_route_handler

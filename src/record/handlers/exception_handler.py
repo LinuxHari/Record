@@ -4,12 +4,14 @@ from typing import Any, Mapping
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from redis.exceptions import RedisError
 from sqlalchemy.exc import DataError, IntegrityError, SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from record.exceptions.http_excpetions import (
     AppException,
     InternalServerException,
+    ServiceUnavailableException,
 )
 
 from record.exceptions.custom_exceptions import FieldValidationException
@@ -248,6 +250,14 @@ async def unexpected_exception_handler(_: Request, exc: Exception) -> JSONRespon
     return _internal_error()
 
 
+async def redis_exception_handler(_: Request, exc: RedisError) -> JSONResponse:
+    return _error_response(
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+        message="Request failed",
+        issue=ServiceUnavailableException.message,
+    )
+
+
 def register_exception_handlers(
     app: FastAPI,
     *,
@@ -260,4 +270,5 @@ def register_exception_handlers(
         RequestValidationError, request_validation_exception_handler
     )
     app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
+    app.add_exception_handler(RedisError, redis_exception_handler)
     app.add_exception_handler(Exception, unexpected_exception_handler)
