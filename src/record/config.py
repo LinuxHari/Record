@@ -4,7 +4,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     db_url: str = Field(min_length=32)
     app_url: HttpUrl
-    queue_url: str = Field(min_length=32)
+    redis_cache_url: str = Field(min_length=24)
+    celery_queue_url: str = Field(min_length=32)
     
     jwt_secret: str = Field(min_length=32)
     jwt_issuer: HttpUrl

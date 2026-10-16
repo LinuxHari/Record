@@ -13,11 +13,6 @@ class JwtSettings(BaseModel):
     iss: str
     aud: str
     exp_mins: int
-
-class JwtValidationReturn(TypedDict):
-    status: Literal["expired", "invalid", "valid"]
-    payload: dict | None
-
 class JwtService:
     ALGORITHM = "HS256"
     LEEWAY_SECONDS = 10
@@ -74,7 +69,7 @@ class JwtService:
 
         return claims
 
-    def validate(self, token: str) -> JwtValidationReturn:
+    def validate(self, token: str) -> dict:
         try:
             payload = self.decode(token)
             return payload
@@ -83,4 +78,4 @@ class JwtService:
             raise TokenExpiredException()
 
         except (InvalidTokenError, KeyError, ValueError):
-            return TokenInvalidException()
+            raise TokenInvalidException()

@@ -5,7 +5,7 @@ from record.app.auth.refresh_token_service import RefreshTokenService
 from record.app.user.repository import UserRepository
 from record.app.user.models import User
 from record.exceptions.http_excpetions import BadRequestException
-
+from record.exceptions.custom_exceptions import FieldValidationException
 
 class SignupData(TypedDict):
     username: str
@@ -33,11 +33,22 @@ class AuthService:
         self.refresh_token_service = refresh_token_service
 
     async def sign_up(self, *, data: SignupData) -> None:
+        existing_user = await self.user_repository.find_by_email_and_username(email=data["email"], username=data["username"])
+
+        if existing_user is not None:
+            if data["username"] == existing_user.username:
+                raise FieldValidationException(field="username", detail="Username is not available")
+
+
+            if data["email"] == existing_user.email:
+                raise FieldValidationException(field="email", detail="User with given email already exists")
+
         user = User(
             username=data["username"],
             password=self.password_service.hash(data["password"]),
             email=data["email"],
         )
+        
         await self.user_repository.create(user)
 
     async def login(self, *, data: LoginData) -> tuple[str, str]:
