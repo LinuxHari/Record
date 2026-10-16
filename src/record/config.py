@@ -10,9 +10,9 @@ class Settings(BaseSettings):
     jwt_secret: str = Field(min_length=32)
     jwt_issuer: HttpUrl
     jwt_audience: HttpUrl
-    jwt_access_expiry_minutes: int
+    jwt_access_expiry_minutes: int = Field(ge=5, description="Jwt access token time in minutes")
 
-    refresh_expiry_days: int
+    refresh_expiry_days: int = Field(ge=1, description="Opaque stateful refresh token time in days")
 
     model_config = SettingsConfigDict(
         env_file=".env",
