@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     jwt_access_expiry_minutes: int = Field(ge=5, description="Jwt access token time in minutes")
 
     refresh_expiry_days: int = Field(ge=1, description="Opaque stateful refresh token time in days")
+    refresh_max_session_days: int = Field(default=30, ge=1, description="Maximum session lifetime in days")
 
     model_config = SettingsConfigDict(
         env_file=".env",
