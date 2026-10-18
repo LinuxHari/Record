@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     refresh_max_session_days: int = Field(default=30, ge=1, description="Maximum session lifetime in days")
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=".env.local",
         extra="forbid",   
         frozen=True,
         str_strip_whitespace=True
