@@ -16,7 +16,7 @@ pg_sessionmanager = DatabaseSessionManager(
     get_settings().db_url,
     PGBase,
     {
-        "echo": True,
+        "echo": False,
         "hide_parameters": True,
         "pool_size": 10,
         "max_overflow": 20,

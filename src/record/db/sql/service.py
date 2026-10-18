@@ -1,4 +1,4 @@
-import contextlib
+from contextlib import asynccontextmanager
 from contextvars import ContextVar
 from typing import Any, AsyncGenerator
 from sqlalchemy.orm import DeclarativeBase
@@ -33,7 +33,7 @@ class DatabaseSessionManager:
         async with self._engine.begin() as connection:
             await connection.run_sync(self._base.metadata.create_all)
 
-    @contextlib.asynccontextmanager
+    @asynccontextmanager
     async def begin(self) -> AsyncGenerator[AsyncSession, None]:
         if self._sessionmaker is None:
             raise Exception("DatabaseSessionManager is not initialized")
@@ -47,7 +47,7 @@ class DatabaseSessionManager:
             await session.close()
             self.db_context.reset(token)
 
-    @contextlib.asynccontextmanager
+    @asynccontextmanager
     async def session(self) -> AsyncGenerator[AsyncSession, None]:
         if self._sessionmaker is None:
             raise Exception("DatabaseSessionManager is not initialized")

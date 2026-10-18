@@ -2,12 +2,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from record.dependencies import get_settings
 from record.__init__ import lifespan
+from record.logging import RequestLoggingMiddleware, setup_logging
 from record.app.assets.router import router as assets_router
 from record.app.auth.router import router as auth_router
 from record.app.ai.router import router as ai_router
 from record.exceptions.exception_registry import CONSTRAINT_EXCEPTIONS
 from record.handlers.exception_handler import register_exception_handlers
 from record.handlers.response_handler import GlobalResponseHandler
+
+setup_logging()
 
 # from fastapi import Depends
 # from record.db.sql.postgres.session import get_pg_session
@@ -28,6 +31,7 @@ app.add_middleware(
     allow_methods=["POST", "GET", "PUT", "DELETE"],
     allow_headers=["*"],
 )
+app.add_middleware(RequestLoggingMiddleware)
 
 app.include_router(assets_router)
 app.include_router(auth_router)
