@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import Any, Mapping
 
@@ -15,6 +16,8 @@ from record.exceptions.http_excpetions import (
 )
 
 from record.exceptions.custom_exceptions import FieldValidationException
+
+logger = logging.getLogger(__name__)
 
 
 def _validation_field(loc: tuple[str | int, ...]) -> str:
@@ -198,7 +201,11 @@ def _internal_error() -> JSONResponse:
 async def sqlalchemy_exception_handler(
     request: Request, exc: SQLAlchemyError
 ) -> JSONResponse:
-    print("Sql exception:", exc)
+    logger.error(
+        "Database operation failed",
+        extra={"exception_type": type(exc).__name__},
+        exc_info=(type(exc), exc, exc.__traceback__),
+    )
     if isinstance(exc, DataError):
         return _error_response(
             status.HTTP_400_BAD_REQUEST,
@@ -246,7 +253,11 @@ async def sqlalchemy_exception_handler(
 
 
 async def unexpected_exception_handler(_: Request, exc: Exception) -> JSONResponse:
-    print("Unhandled exception:", exc)
+    logger.error(
+        "Unhandled application exception",
+        extra={"exception_type": type(exc).__name__},
+        exc_info=(type(exc), exc, exc.__traceback__),
+    )
     return _internal_error()
 
 
