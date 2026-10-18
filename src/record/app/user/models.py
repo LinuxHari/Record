@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Boolean, DateTime, Index, String, CheckConstraint
-from sqlalchemy.orm import Mapped, MappedAsDataclass, mapped_column, validates
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Index, String, text
+from sqlalchemy.orm import Mapped, MappedAsDataclass, mapped_column, relationship, validates
+from typing import List
 from record.db.sql.postgres.session import PGBase
 from record.app.shared.validators import username_validator, email_validator, password_validator
 from record.exceptions.custom_exceptions import FieldValidationException 
@@ -14,8 +15,10 @@ class User(MappedAsDataclass, PGBase):
         CheckConstraint(f"length(email) >= {email_validator.min_len}", name="email_min_length"),
         CheckConstraint(fr"email ~* '{RE_EMAIL}'", name="email_regex_check"),        
        
-        Index("ix_users_email", "email"),
-        Index("ix_users_username", "username"),
+        # Index("ix_users_email", "email", postgresql_where=text("deleted_at IS NULL")),
+        # Index("ix_users_username", "username", postgresql_where=text("deleted_at IS NULL")),
+        # Unique indexes are already created for above two indexes.
+        Index("ix_users_active", "deleted_at", postgresql_where=text("deleted_at IS NULL")),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -26,6 +29,7 @@ class User(MappedAsDataclass, PGBase):
     password: Mapped[str] = mapped_column(
         String(length=password_validator.max_len), nullable=False
     )
+    assets: Mapped[List["Asset"]] = relationship(),
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default_factory=datetime.now, init=False
     )

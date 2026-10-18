@@ -10,6 +10,7 @@ from record.app.auth.refresh_token_service import RefreshTokenService
 from record.app.auth.token_blacklist_service import TokenBlacklistService
 from record.app.user.service import UserService
 from record.app.user.repository import UserRepository
+from record.app.assets.service import AssetService
 from record.db.sql.postgres.session import get_pg_context
 from record.db.memory.redis.cache_service import get_cache_service
 from record.db.memory.redis.service import RedisService
@@ -134,3 +135,6 @@ def get_user_service(
     user_repository: UserRepository = Depends(get_user_repository),
 ) -> UserService:
     return UserService(user_repository=user_repository)
+
+def get_asset_service() -> AssetService:
+    return AssetService()
