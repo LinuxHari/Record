@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from record.dependencies import get_settings
-from record.__init__ import lifespan
+from record import lifespan
 from record.logging import RequestLoggingMiddleware, setup_logging
 from record.app.assets.router import router as assets_router
 from record.app.auth.router import router as auth_router
