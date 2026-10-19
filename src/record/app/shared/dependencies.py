@@ -11,6 +11,7 @@ from record.app.auth.token_blacklist_service import TokenBlacklistService
 from record.app.user.service import UserService
 from record.app.user.repository import UserRepository
 from record.app.assets.service import AssetService
+from record.app.assets.dependencies import get_asset_s3
 from record.db.sql.postgres.session import get_pg_context
 from record.db.memory.redis.cache_service import get_cache_service
 from record.db.memory.redis.service import RedisService
@@ -134,4 +135,5 @@ def get_user_service(
     return UserService(user_repository=user_repository)
 
 def get_asset_service() -> AssetService:
-    return AssetService()
+    s3_service = get_asset_s3()
+    return AssetService(s3_service=s3_service)

@@ -9,14 +9,7 @@ class AssetService:
         self.s3_service: AwsS3 = s3_service
         
 
-    def upload_asset(self, asset_data):
-        """
-        Uploads a new asset to the system.
-
-        :param asset_data: The data of the asset to be uploaded.
-        :return: A response indicating the success or failure of the upload.
-        """
-        # Implement the logic for uploading an asset
+    def initiate_asset_upload(self, asset_data):
         pass
 
     def list_assets(self):
