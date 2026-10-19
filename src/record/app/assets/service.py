@@ -1,11 +1,13 @@
+from record.aws.s3_service import AwsS3
+
 class AssetService:
     """
     Service class for handling asset-related operations.
     """
 
-    def __init__(self):
-        # Initialize any required resources or dependencies here
-        pass
+    def __init__(self, *, s3_service: AwsS3):
+        self.s3_service: AwsS3 = s3_service
+        
 
     def upload_asset(self, asset_data):
         """

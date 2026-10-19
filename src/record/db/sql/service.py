@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from contextvars import ContextVar
-from typing import Any, AsyncGenerator
+from dataclasses import asdict, dataclass
+from typing import AsyncGenerator
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -9,11 +10,20 @@ from sqlalchemy.ext.asyncio import (
 )
 
 
+@dataclass(frozen=True)
+class DatabaseEngineConfig:
+    echo: bool
+    hide_parameters: bool
+    pool_size: int
+    max_overflow: int
+    future: bool
+
+
 class DatabaseSessionManager:
     def __init__(
-        self, host: str, base: DeclarativeBase, engine_kwargs: dict[str, Any] = {}
+        self, host: str, base: DeclarativeBase, engine_config: DatabaseEngineConfig
     ):
-        self._engine = create_async_engine(host, **engine_kwargs)
+        self._engine = create_async_engine(host, **asdict(engine_config))
         self._sessionmaker = async_sessionmaker(autocommit=False, bind=self._engine)
         self._base = base
         self.db_context: ContextVar[AsyncSession] = ContextVar("db_session")

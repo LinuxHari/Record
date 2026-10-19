@@ -6,6 +6,11 @@ class Settings(BaseSettings):
     app_url: HttpUrl
     redis_cache_url: str = Field(min_length=24)
     celery_queue_url: str = Field(min_length=32)
+
+    aws_secret_access_key: str = Field(min_length=4)
+    aws_access_key_id: str = Field(min_length=4)
+    aws_region_name: str = Field(min_length=8)
+    aws_s3_bucket_name: str = Field(min_length=4)
     
     jwt_secret: str = Field(min_length=32)
     jwt_issuer: HttpUrl
