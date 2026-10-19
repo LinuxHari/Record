@@ -10,6 +10,7 @@ from record.app.auth.refresh_token_service import RefreshTokenService
 from record.app.auth.token_blacklist_service import TokenBlacklistService
 from record.app.user.service import UserService
 from record.app.user.repository import UserRepository
+from record.app.assets.repository import AssetRepository
 from record.app.assets.service import AssetService
 from record.app.assets.dependencies import get_asset_s3
 from record.db.sql.postgres.session import get_pg_context
@@ -23,6 +24,8 @@ __all__ = ["AccessClaims"]
 def get_user_repository() -> UserRepository:
     return UserRepository(get_pg_context)
 
+def get_asset_repository() -> AssetRepository:
+    return AssetRepository(get_pg_context)
 
 @lru_cache(maxsize=None)
 def get_password_service() -> PasswordService:
@@ -136,4 +139,5 @@ def get_user_service(
 
 def get_asset_service() -> AssetService:
     s3_service = get_asset_s3()
-    return AssetService(s3_service=s3_service)
+    asset_repository = get_asset_repository()
+    return AssetService(s3_service=s3_service, asset_repository=asset_repository)

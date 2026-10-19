@@ -13,7 +13,6 @@ class S3Config:
     region_name: str
     folder: str
 
-
 class AwsS3:
     def __init__(self, *, config: S3Config) -> None:
         self.config = config
