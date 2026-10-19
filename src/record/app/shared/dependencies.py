@@ -64,9 +64,6 @@ def _extract_access_token(request: Request) -> str | None:
     if token:
         return token
 
-    scheme, _, credentials = request.headers.get("authorization", "").partition(" ")
-    if scheme.lower() == "bearer" and credentials:
-        return credentials
     return None
 
 

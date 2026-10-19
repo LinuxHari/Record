@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
 )
 from record.dependencies import get_settings
-from record.db.sql.service import DatabaseSessionManager
+from record.db.sql.service import DatabaseEngineConfig, DatabaseSessionManager
 from record.db.sql.conventions import metadata
 
 
@@ -15,13 +15,13 @@ class PGBase(AsyncAttrs, DeclarativeBase):
 pg_sessionmanager = DatabaseSessionManager(
     get_settings().db_url,
     PGBase,
-    {
-        "echo": False,
-        "hide_parameters": True,
-        "pool_size": 10,
-        "max_overflow": 20,
-        "future": True,
-    },
+    DatabaseEngineConfig(
+        echo=False,
+        hide_parameters=True,
+        pool_size=10,
+        max_overflow=20,
+        future=True,
+    ),
 )
 
 
