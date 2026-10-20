@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from redis.exceptions import NoScriptError
 
 from record.db.memory.redis.service import RedisService
-from record.dependencies import get_settings
+from record.dependencies import get_settings, utc_now
 from record.exceptions.custom_exceptions import (
     TokenInvalidException,
     TokenReuseDetectedException,
@@ -98,7 +98,7 @@ return {'OK', v}
     ) -> IssuedToken:
         token = secrets.token_urlsafe(32)
         resolved_session_id = session_id or str(uuid.uuid4())
-        now_ts = int(datetime.now(timezone.utc).timestamp())
+        now_ts = int(utc_now.timestamp())
         started_at = session_started_at or now_ts
 
         expires_ts = min(
@@ -143,7 +143,7 @@ return {'OK', v}
         if outcome == "REUSED":
             raise TokenReuseDetectedException(record.session_id, record.user_id)
 
-        now_ts = int(datetime.now(timezone.utc).timestamp())
+        now_ts = int(uct_now.timestamp())
         if record.expires_at <= now_ts:
             raise TokenInvalidException()
 

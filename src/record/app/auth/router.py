@@ -17,7 +17,7 @@ from record.app.shared.dependencies import (
     get_current_user,
     get_optional_current_user,
 )
-from record.app.shared.validators import (
+from record.app.user.validators import (
     email_validator,
     password_validator,
     username_validator,

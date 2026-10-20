@@ -1,12 +1,23 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING, List
+
 from sqlalchemy import Boolean, CheckConstraint, DateTime, Index, String, text
 from sqlalchemy.orm import Mapped, MappedAsDataclass, mapped_column, relationship, validates
-from typing import List
+
+from record.dependencies import utc_now
 from record.db.sql.postgres.session import PGBase
-from record.app.shared.validators import username_validator, email_validator, password_validator
+from record.app.user.validators import (
+    email_validator,
+    password_validator,
+    username_validator,
+)
 from record.exceptions.custom_exceptions import FieldValidationException 
 from record.app.shared.regex import RE_EMAIL
+
+if TYPE_CHECKING:
+    from record.app.assets.models import Asset
+
 
 class User(MappedAsDataclass, PGBase):
     __tablename__ = "users"
@@ -31,13 +42,13 @@ class User(MappedAsDataclass, PGBase):
     )
     assets: Mapped[List["Asset"]] = relationship(),
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default_factory=datetime.now, init=False
+        DateTime, nullable=False, default_factory=utc_now, init=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         nullable=False,
-        default_factory=datetime.now,
-        onupdate=datetime.now,
+        default_factory=utc_now,
+        onupdate=utc_now,
         init=False,
     )
     is_verified: Mapped[bool] = mapped_column(nullable=False, default=False)
@@ -48,7 +59,6 @@ class User(MappedAsDataclass, PGBase):
         try:
             if key == "username":
                 return username_validator.validate(value=value)
-
             return email_validator.validate(value=value)
         except ValueError as exc:
             raise FieldValidationException(field=key, detail=str(exc)) from exc

@@ -140,4 +140,5 @@ def get_user_service(
 def get_asset_service() -> AssetService:
     s3_service = get_asset_s3()
     asset_repository = get_asset_repository()
-    return AssetService(s3_service=s3_service, asset_repository=asset_repository)
+    asset_upload_repository = get_asset_upload_repository()
+    return AssetService(s3_service=s3_service, asset_repository=asset_repository, asset_upload_repository=asset_upload_repository)
