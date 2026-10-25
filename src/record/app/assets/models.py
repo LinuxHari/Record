@@ -40,7 +40,7 @@ class Asset(MappedAsDataclass, PGBase):
     name: Mapped[str] = mapped_column(
         String(length=asset_name_validator.max_len), nullable=False
     )
-    url: Mapped[str] = mapped_column(String(length=1536), nullable=False, unique=True)
+    key: Mapped[str] = mapped_column(String(length=320), nullable=False, unique=True)
     type: Mapped[str] = mapped_column(
         String(length=asset_type_validator.max_len), nullable=False
     )
@@ -78,6 +78,7 @@ class AssetUpload(MappedAsDataclass, PGBase):
         String(length=asset_type_validator.max_len), nullable=False
     )
     size: Mapped[int] = mapped_column(Integer(), nullable=False)
+    key: Mapped[str] = mapped_column(String(length=320), nullable=False, unique=True)
     status: Mapped[AssetStatus] = mapped_column(
         nullable=False, default=AssetStatus.PENDING, init=False
     )

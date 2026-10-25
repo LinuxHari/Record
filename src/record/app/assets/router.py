@@ -114,10 +114,10 @@ async def list_assets(
 #     return {"message": f"Asset {asset_id} deleted successfully"}
 
 
-@router.post("/{asset_id}/complete", dependencies=[Depends(get_pg_transaction)])
+@router.post("/{upload_id}/complete", dependencies=[Depends(get_pg_transaction)])
 async def upload_asset_complete(
-    asset_id: str,
+    upload_id: str,
     asset_service: AssetService = Depends(get_asset_service),
     user: AccessClaims = Depends(get_current_user),
 ) -> List[AssetListResponse]:
-    await asset_service.asset_upload_complete(user_id=user["sub"], asset_id=asset_id)
+    await asset_service.asset_upload_complete(user_id=user["sub"], upload_id=upload_id)

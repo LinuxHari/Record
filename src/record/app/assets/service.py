@@ -1,7 +1,7 @@
 import math
+import uuid
 
 from typing import TypedDict
-from pydantic import Field
 
 from record.aws.s3_service import AwsS3
 from record.exceptions.http_excpetions import BadRequestException
@@ -35,11 +35,13 @@ class AssetService:
         total_chunks = math.ceil(
             asset_metadata["size"] / (self.MULTIPART_CHUNK_SIZE_IN_MB * 1000 * 1000)
         )
-        upload_id = await self.s3_service.create_multipart_upload(
-            file_name=asset_metadata["name"], content_type=asset_metadata["type"]
+
+        unique_file_name = uuid.uuid4() + "-" + asset_metadata["name"].replace(" ", "_").lower()
+        upload_id, key = await self.s3_service.create_multipart_upload(
+            file_name=unique_file_name, content_type=asset_metadata["type"]
         )
         urls = await self.s3_service.generate_presigned_part_urls(
-            file_name=asset_metadata["name"],
+            file_name=unique_file_name,
             upload_id=upload_id,
             total_parts=total_chunks,
         )
@@ -51,24 +53,23 @@ class AssetService:
                 size=asset_metadata["size"],
                 type=asset_metadata["type"],
                 user_id=user_id,
+                key=key
             )
         )
 
         return urls
 
-    async def list_assets(self, *, user_id: str) -> list[dict]:
+    async def list_assets(self, *, user_id: str) -> list[Asset]:
         user_assets = await self.asset_repository.find_many_by_user(user_id=user_id)
         return user_assets
 
-    async def asset_upload_complete(self, *, user_id, asset_id):
-        asset = await self.asset_repository.update_by_id(
-            user_id=user_id,
-            asset_id=asset_id,
-            update_data={"status": AssetStatus.SUCCESS},
-        )
+    async def asset_upload_complete(self, *, user_id: str, upload_id: str):
+        upload = await self.asset_upload_repository.find_by_id(upload_id)
 
-        if not asset:
+        if not upload:
             raise BadRequestException("No asset found")
+
+        await self.asset_repository.create(data=Asset(user_id=user_id, name=upload.name, size=upload.size, type=upload.type, key=upload.key))
 
         await self.asset_upload_repository.delete_by_id()
 
