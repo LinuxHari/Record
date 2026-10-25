@@ -1,8 +1,5 @@
-from celery import Celery
-from record.dependencies import get_settings
+from record.workers import celery_worker_app
 
-celery_app = Celery(
-    "assets",
-    broker=get_settings().celery_queue_url,
-    backend="rpc://",
-)
+@celery_worker_app.task(name="records.tasks.assets.embed")
+async def embed_asset():
+    pass

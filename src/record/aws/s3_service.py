@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import AsyncIterator
+from typing import AsyncIterator, NamedTuple
 
 from aiobotocore.session import AioSession, get_session
 
@@ -12,6 +12,11 @@ class S3Config:
     access_key_id: str
     region_name: str
     folder: str
+
+class MultipartConf(NamedTuple):
+    upload_id: str
+    key: str
+
 
 class AwsS3:
     def __init__(self, *, config: S3Config) -> None:
@@ -84,13 +89,14 @@ class AwsS3:
 
     async def create_multipart_upload(
         self, *, file_name: str, content_type: str | None = None
-    ) -> str:
-        kwargs = {"Bucket": self.config.bucket_name, "Key": self._key(file_name)}
+    ) -> MultipartConf:
+        key = self._key(file_name)
+        kwargs = {"Bucket": self.config.bucket_name, "Key": key}
         if content_type:
             kwargs["ContentType"] = content_type
         async with self.get_client() as client:
             resp = await client.create_multipart_upload(**kwargs)
-            return resp["UploadId"]
+            return MultipartConf(upload_id=resp["UploadId"], key=key)
 
     async def generate_presigned_part_url(
         self,

@@ -1,11 +1,11 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from jwt import PyJWT
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from pydantic import BaseModel
 
-from record.dependencies import get_settings
+from record.dependencies import get_settings, utc_now
 from record.exceptions.custom_exceptions import (
     TokenExpiredException,
     TokenInvalidException,
@@ -45,7 +45,7 @@ class JwtService:
     def generate_token(
         self, payload: dict[str, object], expires_in: timedelta | None = None
     ) -> str:
-        now = datetime.now(timezone.utc)
+        now = utc_now()
         lifetime = (
             expires_in
             if expires_in is not None

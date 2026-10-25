@@ -1,68 +1,47 @@
-import re
-from abc import ABC, abstractmethod
+class StringValidator:
+    label = "Value"
 
-from record.app.shared.regex import RE_ALPHA_LOWER, RE_EMAIL
-
-
-class Validator(ABC):
-    label: str
-
-    def __init__(self, *, min_len: int, max_len: int):
+    def __init__(self, *, min_len: int, max_len: int) -> None:
         if min_len > max_len:
             raise ValueError("min_len cannot be greater than max_len")
 
         self.min_len = min_len
         self.max_len = max_len
 
-    def _check_len(self, value: str) -> None:
-        if len(value) < self.min_len:
-            raise ValueError(f"{self.label} must be at least {self.min_len} characters")
-        if len(value) > self.max_len:
-            raise ValueError(f"{self.label} must not exceed {self.max_len} characters")
-
     def validate(self, value: str, validate_len: bool = True) -> str:
+        if not isinstance(value, str):
+            raise ValueError(f"{self.label} must be a string")
         if validate_len:
-            self._check_len(value)
+            if len(value) < self.min_len:
+                raise ValueError(
+                    f"{self.label} must be at least {self.min_len} characters"
+                )
+            if len(value) > self.max_len:
+                raise ValueError(
+                    f"{self.label} must not exceed {self.max_len} characters"
+                )
         self._validate_rules(value)
         return value
 
-    @abstractmethod
     def _validate_rules(self, value: str) -> None:
-        """Format/content rules specific to the subclass."""
+        _ = value
 
 
-class PasswordValidator(Validator):
-    label = "Password"
+class IntegerValidator:
+    label = "Value"
 
-    def _validate_rules(self, value: str) -> None:
-        if not re.search(r"[A-Z]", value):
-            raise ValueError("Password must contain at least one uppercase letter")
-        if not re.search(r"[a-z]", value):
-            raise ValueError("Password must contain at least one lowercase letter")
-        if not re.search(r"[0-9]", value):
-            raise ValueError("Password must contain at least one number")
-        if not re.search(r"[!@#$%^&*(),.?\":{}|<>_]", value):
-            raise ValueError("Password must contain at least one special character")
+    def __init__(self, *, min_value: int, max_value: int) -> None:
+        if min_value > max_value:
+            raise ValueError("min_value cannot be greater than max_value")
 
+        self.min_value = min_value
+        self.max_value = max_value
 
-class UsernameValidator(Validator):
-    label = "Username"
-
-    def _validate_rules(self, value: str) -> None:
-        if " " in value:
-            raise ValueError("Username cannot contain spaces")
-        if not re.fullmatch(RE_ALPHA_LOWER, value):
-            raise ValueError("Username can contain lowercase letters and numbers only")
-
-
-class EmailValidator(Validator):
-    label = "Email"
-
-    def _validate_rules(self, value: str) -> None:
-        if not re.fullmatch(RE_EMAIL, value):
-            raise ValueError("Email address is not valid")
-
-
-password_validator = PasswordValidator(min_len=8, max_len=255)
-username_validator = UsernameValidator(min_len=3, max_len=32)
-email_validator = EmailValidator(min_len=5, max_len=255)
+    def validate(self, value: int) -> int:
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise ValueError(f"{self.label} must be an integer")
+        if value < self.min_value:
+            raise ValueError(f"{self.label} must be at least {self.min_value}")
+        if value > self.max_value:
+            raise ValueError(f"{self.label} must not exceed {self.max_value}")
+        return value
