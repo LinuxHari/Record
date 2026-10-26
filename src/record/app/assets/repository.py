@@ -43,7 +43,7 @@ class AssetUploadRepository(BaseRepository[AssetUpload]):
         super().__init__(AssetUpload, context_fn)
 
     async def find_by_id(
-        self, *, user_id: uuid.UUID, upload_id: uuid.UUID
+        self, *, user_id: uuid.UUID, upload_id: str
     ) -> AssetUpload | None:
         return await self._find_one(
             where=(self._model.user_id == user_id, self._model.upload_id == upload_id)
@@ -56,14 +56,16 @@ class AssetUploadRepository(BaseRepository[AssetUpload]):
         return await self._create(data)
 
     async def update_by_id(
-        self, *, user_id: uuid.UUID, upload_id: uuid.UUID, update_data: AssetUploadUpdate
+        self, *, user_id: uuid.UUID, upload_id: str, update_data: AssetUploadUpdate
     ) -> AssetUpload | None:
         return await self._update(
             data=update_data,
             where=(self._model.user_id == user_id, self._model.upload_id == upload_id),
         )
 
-    async def delete_by_id(self, *, user_id: uuid.UUID, upload_id: uuid.UUID) -> bool:
+    async def delete_by_id(
+        self, *, user_id: uuid.UUID, upload_id: str
+    ) -> AssetUpload | None:
         return await self._delete(
             where=(self._model.user_id == user_id, self._model.upload_id == upload_id)
         )

@@ -7,7 +7,7 @@ from record.app.assets.config import (
     MAX_ASSET_SIZE_BYTES,
     PDF_CONTENT_TYPE,
 )
-from record.app.assets.router import AssetPayload
+from record.app.assets.router import AssetCompletePayload, AssetPayload
 from record.app.shared.validators import IntegerValidator, StringValidator
 from record.app.user.validators import password_validator
 
@@ -22,6 +22,44 @@ def test_asset_payload_accepts_supported_file_types(file_type: str) -> None:
 def test_asset_payload_rejects_unsupported_file_types() -> None:
     with pytest.raises(ValidationError):
         AssetPayload(name="report.txt", type="text/plain", size=1)
+
+
+def test_asset_complete_payload_accepts_s3_part_metadata() -> None:
+    payload = AssetCompletePayload(
+        parts=[
+            {"ETag": '"etag-1"', "PartNumber": 1},
+            {"etag": '"etag-2"', "partnumber": 2},
+        ]
+    )
+
+    assert [part.part_number for part in payload.parts] == [1, 2]
+
+
+def test_asset_complete_payload_rejects_more_than_nine_parts() -> None:
+    parts = [
+        {"ETag": f'"etag-{part_number}"', "PartNumber": part_number}
+        for part_number in range(1, 11)
+    ]
+
+    with pytest.raises(ValidationError):
+        AssetCompletePayload(parts=parts)
+
+
+@pytest.mark.parametrize(
+    "parts",
+    [
+        [],
+        [{"ETag": "", "PartNumber": 1}],
+        [{"ETag": '"etag"', "PartNumber": 0}],
+        [{"ETag": '"etag"', "PartNumber": 10}],
+        [{"ETag": '"etag"', "PartNumber": 1, "unexpected": True}],
+    ],
+)
+def test_asset_complete_payload_rejects_invalid_part_metadata(
+    parts: list[dict[str, object]],
+) -> None:
+    with pytest.raises(ValidationError):
+        AssetCompletePayload(parts=parts)
 
 
 def test_asset_payload_enforces_asset_name_and_size_limits() -> None:

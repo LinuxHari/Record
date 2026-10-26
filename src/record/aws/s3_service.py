@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import AsyncIterator, NamedTuple
+from typing import AsyncIterator, NamedTuple, TypedDict
 
 from aiobotocore.session import AioSession, get_session
 
@@ -16,6 +16,17 @@ class S3Config:
 class MultipartConf(NamedTuple):
     upload_id: str
     key: str
+
+
+class MultipartPart(TypedDict):
+    ETag: str
+    PartNumber: int
+
+
+class UploadedMultipartPart(TypedDict):
+    ETag: str
+    PartNumber: int
+    Size: int
 
 
 class AwsS3:
@@ -145,15 +156,15 @@ class AwsS3:
         return urls
 
     async def complete_multipart_upload(
-        self, *, file_name: str, upload_id: str, parts: list[dict] #Parts will contain part numbers and ETags
+        self, *, key: str, upload_id: str, parts: list[MultipartPart]
     ):
-        parts = sorted(parts, key=lambda p: p["PartNumber"])
+        ordered_parts = sorted(parts, key=lambda part: part["PartNumber"])
         async with self.get_client() as client:
             return await client.complete_multipart_upload(
                 Bucket=self.config.bucket_name,
-                Key=self._key(file_name),
+                Key=key,
                 UploadId=upload_id,
-                MultipartUpload={"Parts": parts},
+                MultipartUpload={"Parts": ordered_parts},
             )
 
     async def abort_multipart_upload(self, *, file_name: str, upload_id: str):
@@ -164,12 +175,14 @@ class AwsS3:
                 UploadId=upload_id,
             )
 
-    async def list_parts(self, *, file_name: str, upload_id: str) -> list[dict]:
+    async def list_parts(
+        self, *, key: str, upload_id: str
+    ) -> list[UploadedMultipartPart]:
         """Useful for resuming an interrupted upload."""
         async with self.get_client() as client:
             resp = await client.list_parts(
                 Bucket=self.config.bucket_name,
-                Key=self._key(file_name),
+                Key=key,
                 UploadId=upload_id,
             )
             return resp.get("Parts", [])

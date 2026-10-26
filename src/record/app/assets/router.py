@@ -3,8 +3,16 @@ from datetime import datetime
 from typing import Annotated, List
 
 from fastapi import APIRouter, Depends
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+from pydantic import (
+    AliasChoices,
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+)
 
+from record.aws.s3_service import MultipartPart
 from record.db.sql.postgres.session import get_pg_session, get_pg_transaction
 from record.handlers.response_handler import GlobalResponseHandler
 from record.app.shared.dependencies import (
@@ -74,6 +82,30 @@ class AssetUploadResponse(BaseModel):
     url: str
 
 
+class AssetPartPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    etag: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1024)
+    ] = Field(validation_alias=AliasChoices("ETag", "etag"))
+    part_number: int = Field(
+        strict=True,
+        ge=1,
+        le=AssetService.MAX_MULTIPART_PARTS,
+        validation_alias=AliasChoices(
+            "PartNumber", "part_number", "partNumber", "partnumber"
+        ),
+    )
+
+
+class AssetCompletePayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    parts: List[AssetPartPayload] = Field(
+        min_length=1, max_length=AssetService.MAX_MULTIPART_PARTS
+    )
+
+
 class AssetListResponse(BaseModel):
     id: uuid.UUID
     name: str
@@ -117,7 +149,14 @@ async def list_assets(
 @router.post("/{upload_id}/complete", dependencies=[Depends(get_pg_transaction)])
 async def upload_asset_complete(
     upload_id: str,
+    payload: AssetCompletePayload,
     asset_service: AssetService = Depends(get_asset_service),
     user: AccessClaims = Depends(get_current_user),
-) -> List[AssetListResponse]:
-    await asset_service.asset_upload_complete(user_id=user["sub"], upload_id=upload_id)
+) -> None:
+    parts: list[MultipartPart] = [
+        {"ETag": part.etag, "PartNumber": part.part_number}
+        for part in payload.parts
+    ]
+    await asset_service.asset_upload_complete(
+        user_id=user["sub"], upload_id=upload_id, parts=parts
+    )
