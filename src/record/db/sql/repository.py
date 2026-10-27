@@ -54,8 +54,12 @@ class BaseRepository(Generic[ModelT]):
         result = (await self.session.scalars(stmt)).all()
         return result
 
-    async def _create(self, data: Sequence[ModelT]):
+    async def _create_many(self, data: Sequence[ModelT]):
         self.session.add_all(data)
+        return data
+
+    async def _create(self, data: ModelT):
+        self.session.add(data)
         return data
 
     async def _update_many(

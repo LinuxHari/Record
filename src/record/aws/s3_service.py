@@ -61,11 +61,11 @@ class AwsS3:
             return body, resp.get("ContentType")
 
     async def stream_s3_object(
-        self, *, file_name: str, chunk_size: int = 1024 * 64
+        self, *, key: str, chunk_size: int = 1024 * 64
     ) -> AsyncIterator[bytes]:
         async with self.get_client() as client:
             resp = await client.get_object(
-                Bucket=self.config.bucket_name, Key=self._key(file_name)
+                Bucket=self.config.bucket_name, Key=key
             )
             async with resp["Body"] as stream:
                 while chunk := await stream.read(chunk_size):

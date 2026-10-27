@@ -69,6 +69,7 @@ class Asset(AssetFieldValidatorsMixin, MappedAsDataclass, PGBase):
     status: Mapped[AssetStatus] = mapped_column(
         asset_status_enum, nullable=False, default=AssetStatus.PENDING, init=False
     )
+    embeddings: Mapped[list[float]] = relationship("Embeddings")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default_factory=utc_now, init=False
     )

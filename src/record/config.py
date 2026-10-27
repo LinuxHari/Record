@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     refresh_expiry_days: int = Field(ge=1, description="Opaque stateful refresh token time in days")
     refresh_max_session_days: int = Field(default=30, ge=1, description="Maximum session lifetime in days")
 
+    docling_server_url: HttpUrl
+    embedding_model: str = Field(description="Embedding model id", min_length=3)
+    chunk_max_tokens: int = Field(default=512, ge=256, le=512)
+    chunk_overlap_tokens: int = Field(default=32, ge=32, le=128)
+
     model_config = SettingsConfigDict(
         env_file=".env.local",
         extra="forbid",   

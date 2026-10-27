@@ -8,6 +8,7 @@ from record.exceptions.http_excpetions import BadRequestException
 from record.app.assets.repository import AssetRepository, AssetUploadRepository
 from record.app.assets.models import Asset, AssetUpload
 from record.app.assets.config import MAX_ASSET_SIZE_BYTES
+from record.queues.celery import Celery
 
 
 class AssetMetadata(TypedDict):
@@ -19,7 +20,7 @@ class AssetMetadata(TypedDict):
 class AssetService:
     MULTIPART_CHUNK_SIZE_IN_MB = 64
     MAX_MULTIPART_PARTS = math.ceil(
-        MAX_ASSET_SIZE_BYTES / (MULTIPART_CHUNK_SIZE_IN_MB * 1000 * 1000)
+        MAX_ASSET_SIZE_BYTES / (MULTIPART_CHUNK_SIZE_IN_MB * 1024 * 1024)
     )
 
     def __init__(
@@ -28,10 +29,12 @@ class AssetService:
         asset_repository: AssetRepository,
         asset_upload_repository: AssetUploadRepository,
         s3_service: AwsS3,
+        queue_service: Celery
     ) -> None:
         self.s3_service: AwsS3 = s3_service
         self.asset_repository: AssetRepository = asset_repository
         self.asset_upload_repository: AssetUploadRepository = asset_upload_repository
+        self.queue_service: Celery = queue_service
 
     async def initiate_asset_upload(
         self, asset_metadata: AssetMetadata, user_id: str
@@ -40,10 +43,10 @@ class AssetService:
 
         if not 1 <= file_size <= MAX_ASSET_SIZE_BYTES:
             raise BadRequestException(
-                f"File size must be between 1 byte and {MAX_ASSET_SIZE_BYTES / (1000 * 1000)} MB"
+                f"File size must be between 1 byte and {MAX_ASSET_SIZE_BYTES / (1024 * 1024)} MB"
             )
 
-        chunk_size_bytes = self.MULTIPART_CHUNK_SIZE_IN_MB * 1000 * 1000
+        chunk_size_bytes = self.MULTIPART_CHUNK_SIZE_IN_MB * 1024 * 1024
         total_chunks = math.ceil(file_size / chunk_size_bytes)
 
         if total_chunks > self.MAX_MULTIPART_PARTS:
@@ -92,7 +95,7 @@ class AssetService:
         if not 1 <= upload.size <= MAX_ASSET_SIZE_BYTES:
             raise BadRequestException("Asset upload has an invalid file size")
 
-        chunk_size_bytes = self.MULTIPART_CHUNK_SIZE_IN_MB * 1000 * 1000
+        chunk_size_bytes = self.MULTIPART_CHUNK_SIZE_IN_MB * 1024 * 1024
         expected_parts = math.ceil(upload.size / chunk_size_bytes)
 
         if not 1 <= len(parts) <= self.MAX_MULTIPART_PARTS:
@@ -142,9 +145,14 @@ class AssetService:
                 key=upload.key,
             )
         )
+
+        self.queue_service.send_task('records.tasks.assets.embed')
+        
         await self.asset_upload_repository.delete_by_id(
             user_id=user_id, upload_id=upload_id
         )
+
+
 
     # def update_asset(self, asset_id, updated_data):
     #     """

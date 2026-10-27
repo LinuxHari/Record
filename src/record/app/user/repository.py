@@ -28,7 +28,7 @@ class UserRepository(BaseRepository[User]):
     #     return await self._find_one(where=(self._model.email == email,))
 
     async def create(self, user: User):
-        return await self._create([user])
+        return await self._create(user)
 
     # async def create_many(self, users: Sequence[User]):
     #     return await self._create(users)

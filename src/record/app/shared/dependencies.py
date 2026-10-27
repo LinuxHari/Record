@@ -8,14 +8,21 @@ from record.app.auth.password_service import PasswordService
 from record.app.auth.jwt_service import JwtService
 from record.app.auth.refresh_token_service import RefreshTokenService
 from record.app.auth.token_blacklist_service import TokenBlacklistService
+
 from record.app.user.service import UserService
 from record.app.user.repository import UserRepository
-from record.app.assets.repository import AssetRepository
+
+from record.app.assets.repository import AssetRepository, AssetUploadRepository
 from record.app.assets.service import AssetService
 from record.app.assets.dependencies import get_asset_s3
+
+from record.app.ai.embedding.chunk_service import ChunkService
+from record.app.ai.embedding.repository import EmbeddingRepository
+from record.app.ai.embedding.service import EmbeddingService
+
 from record.db.sql.postgres.session import get_pg_context
-from record.db.memory.redis.cache_service import get_cache_service
-from record.db.memory.redis.service import RedisService
+from record.db.cache.redis.cache_service import get_cache_service
+from record.db.cache.redis.service import RedisService
 from record.exceptions.custom_exceptions import TokenInvalidException
 
 __all__ = ["AccessClaims"]
@@ -26,6 +33,9 @@ def get_user_repository() -> UserRepository:
 
 def get_asset_repository() -> AssetRepository:
     return AssetRepository(get_pg_context)
+
+def get_asset_upload_repository() -> AssetUploadRepository:
+    return AssetUploadRepository(get_pg_context)
 
 @lru_cache(maxsize=None)
 def get_password_service() -> PasswordService:
@@ -142,3 +152,13 @@ def get_asset_service() -> AssetService:
     asset_repository = get_asset_repository()
     asset_upload_repository = get_asset_upload_repository()
     return AssetService(s3_service=s3_service, asset_repository=asset_repository, asset_upload_repository=asset_upload_repository)
+
+def get_chunk_service() -> ChunkService:
+    return ChunkService()
+
+def get_embed_service() -> EmbeddingService:
+    return EmbeddingService(
+        chunk_service=get_chunk_service(),
+        s3_service=get_asset_s3(),
+        embedding_repository=EmbeddingRepository(get_pg_context),
+    )
