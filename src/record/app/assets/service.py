@@ -149,7 +149,11 @@ class AssetService:
 
         self.queue_service.send_task(
             "records.tasks.assets.embed",
-            kwargs=EmbedPayload(key=upload.key, user_id=user_id, asset_id=new_asset.id),
+            kwargs={
+                "payload": EmbedPayload(
+                    key=upload.key, user_id=user_id, asset_id=str(new_asset.id)
+                )
+            },
         )
 
         await self.asset_upload_repository.delete_by_id(

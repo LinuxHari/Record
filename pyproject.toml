@@ -30,6 +30,12 @@ dev = [
     "pytest>=8",
 ]
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    # Docling's validators access fields marked deprecated even when they are unset.
+    "ignore:^deprecated$:DeprecationWarning:docling\\.datamodel\\.service\\.options",
+]
+
 [tool.fastapi]
 entrypoint = "src.record.main:app"
 

@@ -98,7 +98,7 @@ return {'OK', v}
     ) -> IssuedToken:
         token = secrets.token_urlsafe(32)
         resolved_session_id = session_id or str(uuid.uuid4())
-        now_ts = int(utc_now.timestamp())
+        now_ts = int(utc_now().timestamp())
         started_at = session_started_at or now_ts
 
         expires_ts = min(
@@ -143,7 +143,7 @@ return {'OK', v}
         if outcome == "REUSED":
             raise TokenReuseDetectedException(record.session_id, record.user_id)
 
-        now_ts = int(uct_now.timestamp())
+        now_ts = int(utc_now().timestamp())
         if record.expires_at <= now_ts:
             raise TokenInvalidException()
 

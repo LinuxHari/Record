@@ -1,8 +1,3 @@
-from celery import Celery
-from record.dependencies import get_settings
+from record.queues.celery import celery_app
 
-celery_worker_app = Celery(
-    "assets",
-    broker=get_settings().celery_queue_url,
-    backend="rpc://",
-)
+celery_worker_app = celery_app

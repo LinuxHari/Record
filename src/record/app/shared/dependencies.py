@@ -15,6 +15,7 @@ from record.app.user.repository import UserRepository
 from record.app.assets.repository import AssetRepository, AssetUploadRepository
 from record.app.assets.service import AssetService
 from record.app.assets.dependencies import get_asset_s3
+from record.queues.celery import celery_app
 
 from record.app.ai.embedding.chunk_service import ChunkService
 from record.app.ai.embedding.repository import EmbeddingRepository
@@ -151,7 +152,12 @@ def get_asset_service() -> AssetService:
     s3_service = get_asset_s3()
     asset_repository = get_asset_repository()
     asset_upload_repository = get_asset_upload_repository()
-    return AssetService(s3_service=s3_service, asset_repository=asset_repository, asset_upload_repository=asset_upload_repository)
+    return AssetService(
+        s3_service=s3_service,
+        asset_repository=asset_repository,
+        asset_upload_repository=asset_upload_repository,
+        queue_service=celery_app,
+    )
 
 def get_chunk_service() -> ChunkService:
     return ChunkService()

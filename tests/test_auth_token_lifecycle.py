@@ -24,7 +24,7 @@ from record.app.shared.dependencies import (
 )
 from record.app.user.models import User
 from record.app.user.repository import UserRepository
-from record.db.memory.redis.service import RedisService
+from record.db.cache.redis.service import RedisService
 from record.exceptions.custom_exceptions import (
     TokenInvalidException,
     TokenReuseDetectedException,

@@ -57,7 +57,7 @@ class EmbeddingService:
                 chunk_primary_loc = chunk.doc_items[0].self_ref
 
                 await self.embedding_repository.create(
-                    Embeddings(
+                    data=Embeddings(
                         user_id=user_id,
                         asset_id=asset_id,
                         text_context=chunk.text,

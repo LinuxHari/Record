@@ -23,6 +23,7 @@ class CeleryConfig:
 celery_app = Celery(
     "assets",
     broker=get_settings().celery_queue_url,
+    include=["record.workers.assets_worker"],
 )
 
 celery_app.config_from_object(CeleryConfig)
