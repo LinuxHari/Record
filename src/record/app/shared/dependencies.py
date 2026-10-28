@@ -161,4 +161,5 @@ def get_embed_service() -> EmbeddingService:
         chunk_service=get_chunk_service(),
         s3_service=get_asset_s3(),
         embedding_repository=EmbeddingRepository(get_pg_context),
+        asset_repository=get_asset_repository(),
     )

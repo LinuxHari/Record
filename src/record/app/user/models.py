@@ -40,7 +40,7 @@ class User(MappedAsDataclass, PGBase):
     password: Mapped[str] = mapped_column(
         String(length=password_validator.max_len), nullable=False
     )
-    assets: Mapped[List["Asset"]] = relationship(),
+    assets: Mapped[List["Asset"]] = relationship(back_populates="user", init=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default_factory=utc_now, init=False
     )

@@ -1,5 +1,5 @@
 from record.app.auth.jwt_service import JwtService
-from record.db.memory.redis.service import RedisService
+from record.db.cache.redis.service import RedisService
 from record.dependencies import get_settings
 
 

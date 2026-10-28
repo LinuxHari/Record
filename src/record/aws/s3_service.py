@@ -78,12 +78,12 @@ class AwsS3:
             )
 
     async def generate_presigned_get_url(
-        self, *, file_name: str, expires_in: int = 3600
+        self, *, key: str, expires_in: int = 3600
     ) -> str:
         async with self.get_client() as client:
             return await client.generate_presigned_url(
                 "get_object",
-                Params={"Bucket": self.config.bucket_name, "Key": self._key(file_name)},
+                Params={"Bucket": self.config.bucket_name, "Key": key},
                 ExpiresIn=expires_in,
             )
 

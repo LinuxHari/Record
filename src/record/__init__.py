@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from record.db.sql.postgres.session import pg_sessionmanager
-from record.db.memory.redis.cache_service import cache_service
+from record.db.cache.redis.cache_service import cache_service
 
 logger = logging.getLogger(__name__)
 

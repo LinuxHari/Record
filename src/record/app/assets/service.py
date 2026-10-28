@@ -9,6 +9,7 @@ from record.app.assets.repository import AssetRepository, AssetUploadRepository
 from record.app.assets.models import Asset, AssetUpload
 from record.app.assets.config import MAX_ASSET_SIZE_BYTES
 from record.queues.celery import Celery
+from record.workers.assets_worker import EmbedPayload
 
 
 class AssetMetadata(TypedDict):
@@ -29,7 +30,7 @@ class AssetService:
         asset_repository: AssetRepository,
         asset_upload_repository: AssetUploadRepository,
         s3_service: AwsS3,
-        queue_service: Celery
+        queue_service: Celery,
     ) -> None:
         self.s3_service: AwsS3 = s3_service
         self.asset_repository: AssetRepository = asset_repository
@@ -136,7 +137,7 @@ class AssetService:
         await self.s3_service.complete_multipart_upload(
             key=upload.key, upload_id=upload_id, parts=parts
         )
-        await self.asset_repository.create(
+        new_asset = await self.asset_repository.create(
             data=Asset(
                 user_id=user_id,
                 name=upload.name,
@@ -146,13 +147,14 @@ class AssetService:
             )
         )
 
-        self.queue_service.send_task('records.tasks.assets.embed')
-        
+        self.queue_service.send_task(
+            "records.tasks.assets.embed",
+            kwargs=EmbedPayload(key=upload.key, user_id=user_id, asset_id=new_asset.id),
+        )
+
         await self.asset_upload_repository.delete_by_id(
             user_id=user_id, upload_id=upload_id
         )
-
-
 
     # def update_asset(self, asset_id, updated_data):
     #     """
