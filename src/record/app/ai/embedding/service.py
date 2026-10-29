@@ -14,6 +14,7 @@ from record.app.assets.repository import AssetRepository
 
 logger = logging.getLogger(__name__)
 
+
 class EmbeddingService:
     def __init__(
         self,
@@ -30,14 +31,13 @@ class EmbeddingService:
         self.embedding_repository = embedding_repository
         self.asset_repository = asset_repository
         self.embedding_model = get_settings().embedding_model
-
-    async def embed(self, content: str) -> list[float]:
-        embeddings = OllamaEmbeddings(
+        self.embeddings = OllamaEmbeddings(
             model=self.embedding_model,
             dimensions=1024,
         )
 
-        return await embeddings.aembed_query(content)
+    async def embed(self, content: str) -> list[float]:
+        return await self.embeddings.aembed_query(content)
 
     async def embed_asset(self, *, s3_key: str, user_id: str, asset_id: str) -> None:
         try:
@@ -81,8 +81,11 @@ class EmbeddingService:
                 extra={"exception_type": type(exc).__name__},
                 exc_info=(type(exc), exc, exc.__traceback__),
             )
-            await self.asset_repository.update_by_id(
-                user_id=user_id,
-                asset_id=asset_id,
-                update_data={"status": AssetStatus.FAILED},
-            )
+            raise
+
+    async def mark_asset_failed(self, *, user_id: str, asset_id: str) -> None:
+        await self.asset_repository.update_by_id(
+            user_id=user_id,
+            asset_id=asset_id,
+            update_data={"status": AssetStatus.FAILED},
+        )

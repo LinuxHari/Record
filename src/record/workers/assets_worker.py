@@ -1,7 +1,7 @@
 import asyncio
 import os
-from typing import TypedDict
 
+from typing import TypedDict
 from celery.signals import worker_process_shutdown
 
 from record.db.sql.postgres.session import pg_sessionmanager
@@ -14,24 +14,32 @@ class EmbedPayload(TypedDict):
     asset_id: str
 
 
-def _embed_asset_service_factory():
+_runner: asyncio.Runner | None = None
+_runner_pid: int | None = None
+
+# To prevent circular dependency
+def _get_embed_service():
     from record.app.shared.dependencies import get_embed_service
 
     return get_embed_service()
 
 
-_runner: asyncio.Runner | None = None
-_runner_pid: int | None = None
-
-
 async def _embed_asset(payload: EmbedPayload) -> None:
-    async with pg_sessionmanager.session():
-        service = _embed_asset_service_factory()
-        await service.embed_asset(
-            s3_key=payload["key"],
-            user_id=payload["user_id"],
-            asset_id=payload["asset_id"],
-        )
+    service = _get_embed_service()
+    try:
+        async with pg_sessionmanager.session():
+            await service.embed_asset(
+                s3_key=payload["key"],
+                user_id=payload["user_id"],
+                asset_id=payload["asset_id"],
+            )
+    except Exception:
+        async with pg_sessionmanager.session():
+            await service.mark_asset_failed(
+                user_id=payload["user_id"],
+                asset_id=payload["asset_id"],
+            )
+        raise
 
 
 @celery_worker_app.task(name="records.tasks.assets.embed")

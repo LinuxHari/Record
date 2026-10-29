@@ -3,9 +3,12 @@ import os
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
 from record.app.ai.embedding.hash_service import HashService
 from record.app.ai.embedding.service import EmbeddingService
 from record.app.assets.models import AssetStatus
+from record.app.user.models import User
 from record.workers import assets_worker
 
 
@@ -78,7 +81,7 @@ def test_embed_asset_stores_each_chunk_and_marks_asset_success() -> None:
     )
 
 
-def test_embed_asset_marks_asset_failed_when_processing_raises() -> None:
+def test_embed_asset_propagates_processing_error() -> None:
     service, s3_service, _, embedding_repository, asset_repository = (
         create_embedding_service()
     )
@@ -88,20 +91,17 @@ def test_embed_asset_marks_asset_failed_when_processing_raises() -> None:
     embedding_repository.create = AsyncMock()
     asset_repository.update_by_id = AsyncMock()
 
-    asyncio.run(
-        service.embed_asset(
-            s3_key="assets/doc.pdf",
-            user_id="user-123",
-            asset_id="asset-123",
+    with pytest.raises(RuntimeError, match="S3 unavailable"):
+        asyncio.run(
+            service.embed_asset(
+                s3_key="assets/doc.pdf",
+                user_id="user-123",
+                asset_id="asset-123",
+            )
         )
-    )
 
     embedding_repository.create.assert_not_awaited()
-    asset_repository.update_by_id.assert_awaited_once_with(
-        user_id="user-123",
-        asset_id="asset-123",
-        update_data={"status": AssetStatus.FAILED},
-    )
+    asset_repository.update_by_id.assert_not_awaited()
 
 
 def test_worker_opens_db_context_and_invokes_embedding_service(monkeypatch) -> None:
@@ -141,6 +141,53 @@ def test_worker_opens_db_context_and_invokes_embedding_service(monkeypatch) -> N
     assert session_entered
     service.embed_asset.assert_awaited_once_with(
         s3_key="assets/doc.pdf",
+        user_id="user-123",
+        asset_id="asset-123",
+    )
+
+
+def test_worker_rolls_back_before_marking_asset_failed(monkeypatch) -> None:
+    runner = asyncio.Runner()
+    monkeypatch.setattr(assets_worker, "_runner", runner)
+    monkeypatch.setattr(assets_worker, "_runner_pid", os.getpid())
+
+    service = MagicMock()
+    service.embed_asset = AsyncMock(side_effect=RuntimeError("embedding failed"))
+    service.mark_asset_failed = AsyncMock()
+    monkeypatch.setattr(assets_worker, "_embed_asset_service_factory", lambda: service)
+    session_exit_exceptions: list[type[BaseException] | None] = []
+
+    class SessionContext:
+        async def __aenter__(self):
+            return None
+
+        async def __aexit__(
+            self,
+            exc_type: type[BaseException] | None,
+            _exc: BaseException | None,
+            _traceback: object,
+        ) -> None:
+            session_exit_exceptions.append(exc_type)
+
+    monkeypatch.setattr(
+        assets_worker.pg_sessionmanager,
+        "session",
+        lambda: SessionContext(),
+    )
+    payload = {
+        "key": "assets/doc.pdf",
+        "user_id": "user-123",
+        "asset_id": "asset-123",
+    }
+
+    try:
+        with pytest.raises(RuntimeError, match="embedding failed"):
+            assets_worker.embed_asset.run(payload)
+    finally:
+        runner.close()
+
+    assert session_exit_exceptions == [RuntimeError, None]
+    service.mark_asset_failed.assert_awaited_once_with(
         user_id="user-123",
         asset_id="asset-123",
     )
